@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.test import TestCase
 
-from .models import Question
+from .models import Question, Choice
 
 
 def create_question(question_text, days):
@@ -13,6 +13,10 @@ def create_question(question_text, days):
     """
     time = timezone.now() + datetime.timedelta(days=days)
     return Question.objects.create(question_text=question_text, pub_date=time)
+
+def create_choice(question, choice_text):
+    """ Creates a choice for the given 'question' with the given 'choice_text' """
+    return Choice.objects.create(question=question, choice_text=choice_text)
 
 
 class QuestionMethodTests(TestCase):
@@ -83,16 +87,37 @@ class QuestionIndexDetailTests(TestCase):
     def test_detail_view_with_a_future_question(self):
         """ The detail view of a question with a pub_date in the future should return a 404 not found. """
         future_question = create_question(question_text='Future question.', days=5)
+        # Ensures that question is not excluded for not having choices
+        choice_for_question = create_choice(question=future_question, choice_text='Choice 1.')
         url = reverse('polls:detail', args=(future_question.id,))
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
 
     def test_detail_view_with_a_past_question(self):
-        """ The detail view of a question with a pub_date in the past should display the question's text. """
+        """ The detail view of a question with a pub_date in the past should display the question's text and choices. """
         past_question = create_question(question_text='Past Question.', days=-5)
+        # Ensures that question is not excluded for not having choices
+        choice_for_question = create_choice(question=past_question, choice_text='Choice 1.')
         url = reverse('polls:detail', args=(past_question.id,))
         response = self.client.get(url)
         self.assertContains(response, past_question.question_text)
+
+    def test_detail_view_with_a_question_with_no_choices(self):
+        """ The detail view of a question with no choices should return a 404 not found. """
+        # Days value ensures that question is not excluded for being in the past
+        choiceless_question = create_question(question_text='Choiceless question', days=-1)
+        url = reverse('polls:detail', args=(choiceless_question.id,))
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_detail_view_with_a_question_with_choices(self):
+        """ The detail view of a question with choices should display the question's text and choices. """
+        question_with_choices = create_question(question_text='Question with choices.', days=-1)
+        choice_for_question = create_choice(question=question_with_choices, choice_text='Choice 1.')
+        url = reverse ('polls:detail', args=(question_with_choices.id,))
+        response = self.client.get(url)
+        self.assertContains(response, question_with_choices.question_text)
+
 
 
 class QuestionIndexResultsTests(TestCase):

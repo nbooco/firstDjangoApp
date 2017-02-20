@@ -27,8 +27,13 @@ class DetailView(generic.DetailView):
     template_name = 'polls/detail.html'
     
     def get_queryset(self):
-        """ Excludes any questions that aren't published yet. """
-        return Question.objects.filter(pub_date__lte=timezone.now())
+        """ Excludes any questions that aren't published yet or that have no choices. """
+        # Build a list of questions with choices and exclude questions not in that list
+        questions_with_choices = set()
+        for choice in Choice.objects.all():
+            questions_with_choices.add(choice.question.id)
+        # Excludes questions that don't have choices, then those that haven't been published yet
+        return Question.objects.filter(id__in=questions_with_choices).filter(pub_date__lte=timezone.now())
 
 
 # View for seeing the results for a specific question
