@@ -1,6 +1,7 @@
 import datetime
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
+from django.utils import timezone
 
 # A poll question - includes the text and publication date
 class Question(models.Model):
@@ -9,7 +10,8 @@ class Question(models.Model):
     def __str__(self):
         return self.question_text
     def was_published_recently(self):
-        return self.pub_date >= timezone.now() - datetime.timedelta(days=1)
+        now = timezone.now()
+        return now - datetime.timedelta(days=1) <= self.pub_date <= now
 
 # An answer to a poll question - references the associated question and includes the text and number of votes
 class Choice(models.Model):
