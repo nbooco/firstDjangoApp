@@ -14,9 +14,15 @@ class IndexView(generic.ListView):
 
     def get_queryset(self):
         """
-        Return the last five published questions (not including those set to be published in the future).
+        Return the last five published questions (not including those set to be published in the future or those with no choices).
         """
+        # Build a list of questions with choices
+        questions_with_choices = set()
+        for choice in Choice.objects.all():
+            questions_with_choices.add(choice.question.id)
         return Question.objects.filter(
+                id__in=questions_with_choices
+            ).filter(
                 pub_date__lte=timezone.now()
         ).order_by('-pub_date')[:5]
 
