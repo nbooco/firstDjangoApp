@@ -112,6 +112,7 @@ class QuestionIndexDetailTests(TestCase):
 
     def test_detail_view_with_a_question_with_choices(self):
         """ The detail view of a question with choices should display the question's text and choices. """
+        # Days value ensures that question is not excluded for being in the past
         question_with_choices = create_question(question_text='Question with choices.', days=-1)
         choice_for_question = create_choice(question=question_with_choices, choice_text='Choice 1.')
         url = reverse ('polls:detail', args=(question_with_choices.id,))
@@ -119,11 +120,12 @@ class QuestionIndexDetailTests(TestCase):
         self.assertContains(response, question_with_choices.question_text)
 
 
-
 class QuestionIndexResultsTests(TestCase):
     def test_results_view_with_a_future_question(self):
         """ The results view of a question with a pub_date in the future should return a 404 not found. """
         future_question = create_question(question_text='Future question.', days=5)
+        # Ensures that question is not excluded for not having choices
+        choice_for_question = create_choice(question=future_question, choice_text='Choice 1.')
         url = reverse('polls:results', args=(future_question.id,))
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
@@ -134,6 +136,25 @@ class QuestionIndexResultsTests(TestCase):
         choices with vote totals for each.
         """
         past_question = create_question(question_text='Past question.', days=-5)
+        # Ensures that question is not excluded for not having choices
+        choice_for_question = create_choice(question=past_question, choice_text='Choice 1.')
         url = reverse('polls:results', args=(past_question.id,))
         response = self.client.get(url)
         self.assertContains(response, past_question.question_text)
+
+    def test_results_view_with_a_question_with_no_choices(self):
+        """ The results view of a question with no choices should return a 404 not found. """
+        # Days value ensures that question is not excluded for being in the past
+        choiceless_question = create_question(question_text='Choiceless question', days=-1)
+        url = reverse('polls:results', args=(choiceless_question.id,))
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_results_view_with_a_question_with_choices(self):
+        """ The results view of a question with choices should display the question's text and choices. """
+        # Days value ensures that question is not excluded for being in the past
+        question_with_choices = create_question(question_text='Question with choices.', days=-1)
+        choice_for_question = create_choice(question=question_with_choices, choice_text='Choice 1.')
+        url = reverse ('polls:results', args=(question_with_choices.id,))
+        response = self.client.get(url)
+        self.assertContains(response, question_with_choices.question_text)
